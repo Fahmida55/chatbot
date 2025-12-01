@@ -1,23 +1,48 @@
 import Bot from "../models/bot.model.js";
 import User from "../models/user.model.js";
 
-export const Message=async(req,res)=>{
-   try {
-    const {text}=req.body;
- 
-    if(!text?.trim()){
-        return res.status(400).json({error:"Text cannot be empty"});
+
+// ----------- Helper Function (Recursive Search) -------------
+function findResponse(obj, text) {
+  for (const key in obj) {
+
+    // যদি value আরেকটা object হয় → nested search
+    if (typeof obj[key] === "object") {
+      const result = findResponse(obj[key], text);
+      if (result) return result;
+    } 
+    
+    // যদি key user message-এ পাওয়া যায়
+    else {
+      if (text.includes(key.toLowerCase())) {
+        return obj[key];
+      }
+    }
+  }
+  return null;
+}
+
+
+// ---------------- Main Message Controller -------------------
+export const Message = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text?.trim()) {
+      return res.status(400).json({ error: "Text cannot be empty" });
     }
 
-    const user=await User.create({
-        sender:"user",
-        text
-    })
+    // Save user message
+    const user = await User.create({
+      sender: "user",
+      text,
+    });
 
-    // Data
-    const botResponses={
-  
-  "greetings": {
+    // ----------- All Bot Data --------------------
+    const botResponses = {
+      
+
+greetings: {
     "hello": "Hi, how can I help you today?",
     "hi": "Hello! What can I do for you?",
     "hey": "Hey! Need help?",
@@ -34,7 +59,7 @@ export const Message=async(req,res)=>{
     "hiya": "Hiya! How can I assist?"
   },
 
-  "farewells": {
+  farewells: {
     "bye": "Goodbye! Come back anytime.",
     "see you": "See you later! Have a great day!",
     "goodbye": "Farewell! Take care.",
@@ -46,7 +71,7 @@ export const Message=async(req,res)=>{
     "ciao": "Ciao! Have a wonderful day!"
   },
 
-  "jokes": {
+  jokes: {
     "tell me a joke": "Why don’t skeletons fight? They don’t have the guts!",
     "tell me another joke": "Why did the computer go to the doctor? Because it had a virus!",
     "give me a riddle": "I speak without a mouth. What am I? — An echo!",
@@ -57,7 +82,7 @@ export const Message=async(req,res)=>{
     "funny fact": "Did you know? Penguins propose to their mates with pebbles!"
   },
 
-  "emotions": {
+emotions: {
     "i am sad": "I'm here for you. Want to talk about it?",
     "i am happy": "That’s great! Happiness looks good on you.",
     "i am bored": "Let’s chat! Want a joke, fact, or story?",
@@ -70,7 +95,7 @@ export const Message=async(req,res)=>{
     "i am scared": "It’s normal to feel scared. Want me to tell a calming story?"
   },
 
-  "knowledge": {
+  knowledge: {
     "what is ai": "AI stands for Artificial Intelligence — machines that can learn and act smart!",
     "what is life": "Life is a journey filled with learning and experiences.",
     "what is love": "Love is a deep feeling of care and connection.",
@@ -86,7 +111,7 @@ export const Message=async(req,res)=>{
     "who invented the light bulb": "Thomas Edison is credited with inventing the practical light bulb."
   },
 
-  "math": {
+  math: {
     "what is 1+1": "1 + 1 = 2",
     "what is 10*5": "10 × 5 = 50",
     "solve math": "Tell me the problem!",
@@ -100,7 +125,7 @@ export const Message=async(req,res)=>{
     "what is 50/2": "50 ÷ 2 = 25"
   },
 
-  "sports": {
+  sports: {
     "who won world cup 2018": "France won the FIFA World Cup 2018!",
     "best football player": "Many say Lionel Messi or Cristiano Ronaldo!",
     "what is cricket": "Cricket is a bat-and-ball game played between two teams of 11 players.",
@@ -109,7 +134,7 @@ export const Message=async(req,res)=>{
     "what is basketball": "Basketball is a game played between two teams trying to score in a hoop."
   },
 
-  "movies": {
+  movies: {
     "who is iron man": "Iron Man is Tony Stark, a character from Marvel Comics.",
     "best movie": "That depends on your taste! Some favorites: Inception, Interstellar, The Dark Knight.",
     "recommend a movie": "If you like sci-fi, watch Interstellar. For action, try John Wick.",
@@ -117,7 +142,7 @@ export const Message=async(req,res)=>{
     "favorite actor": "Some popular actors are Robert Downey Jr., Chris Hemsworth, and Scarlett Johansson."
   },
 
-  "fun": {
+  fun: {
     "do you play games": "I can’t play games, but I can chat about them!",
     "do you watch movies": "I don't watch movies, but I know about many!",
     "can you dance": "I can’t dance, but I can imagine it! 💃",
@@ -126,7 +151,7 @@ export const Message=async(req,res)=>{
     "tell me a story": "Once upon a time, a bot learned to chat with humans and make them smile!"
   },
 
-  "quotes": {
+  quotes: {
     "motivate me": "Believe in yourself! Every journey begins with a single step.",
     "inspire me": "The best way to predict the future is to create it.",
     "life quote": "Life is 10% what happens to us and 90% how we react to it.",
@@ -134,7 +159,7 @@ export const Message=async(req,res)=>{
     "quote about learning": "Knowledge is power."
   },
 
-  "personal": {
+  personal: {
     "who is your best friend": "Anyone who chats with me!",
     "you are stupid": "I'm sorry if I disappointed you. I will improve!",
     "you are smart": "Thanks! I appreciate the compliment.",
@@ -146,7 +171,7 @@ export const Message=async(req,res)=>{
   },
 
 
-"bangladesh": {
+bangladesh: {
   "capital": "Dhaka is the capital city of Bangladesh.",
   "largest_city": "Dhaka is the largest city in Bangladesh.",
   "population": "Bangladesh has a population of over 170 million people.",
@@ -171,7 +196,7 @@ export const Message=async(req,res)=>{
   "geography": "Bangladesh is located in South Asia, bordered by India, Myanmar, and the Bay of Bengal.",
   "tourism": "Cox's Bazar is famous for having the world's longest sandy sea beach."
 },
-"bangladesh_food": {
+bangladesh_food: {
   "traditional_foods": "Some traditional foods of Bangladesh include Hilsa fish curry, Bhuna Khichuri, Shutki (dried fish) preparations, and Panta Bhat.",
   "street_foods": "Popular street foods are Fuchka (Bangladeshi Pani Puri), Chotpoti, Jhalmuri, Singara, and Samosa.",
   "rice_dishes": "Rice is the staple food. Popular rice dishes include Tehari, Khichuri, Biryani, and Plain steamed rice with curries.",
@@ -186,7 +211,7 @@ export const Message=async(req,res)=>{
   "regional_specialties": "Sylheti cuisine includes Shutki dishes, Chittagong has Mezbani beef, and Khulna is famous for fish-based dishes."
 }
 ,
-"bangladesh_population": {
+bangladesh_population: {
   "total_population": "Bangladesh has a population of over 170 million people.",
   "population_density": "Bangladesh is one of the most densely populated countries in the world.",
   "growth_rate": "The population growth rate is around 1% per year.",
@@ -204,7 +229,7 @@ export const Message=async(req,res)=>{
   "population_facts": "Bangladesh is the 8th most populous country in the world."
 }
 ,
-"bangladesh_rivers": {
+bangladesh_rivers: {
   "major_rivers": "Bangladesh has over 700 rivers. Major ones include Padma, Jamuna, Meghna, and Surma.",
   "padma_river": "Padma is the main distributary of the Ganges and one of the largest rivers in Bangladesh.",
   "jamuna_river": "Jamuna is the main channel of the Brahmaputra in Bangladesh and one of the widest rivers in the world.",
@@ -221,7 +246,7 @@ export const Message=async(req,res)=>{
   "environmental_issues": "River pollution, erosion, and siltation are major environmental challenges."
 }
 ,
-"bangladesh_occupation": {
+bangladesh_occupation: {
   "agriculture": "Agriculture is the largest employment sector in Bangladesh, employing around 40% of the population.",
   "fisheries": "Fishing is a major occupation, especially in riverine and coastal areas like Sundarbans and Cox's Bazar.",
   "textile_industry": "The ready-made garments (RMG) sector is the largest employer in the industrial sector, particularly in Dhaka and Chittagong.",
@@ -238,7 +263,7 @@ export const Message=async(req,res)=>{
   "employment_facts": "Bangladesh has a labor force of around 70 million people, with a growing focus on industrial and service sectors."
 }
 ,
-"computer_knowledge": {
+computer_knowledge: {
   "what_is_computer": "A computer is an electronic device that processes data according to instructions. It can perform calculations, store information, and run applications.",
   "computer_parts": "A computer typically has a CPU (brain of the computer), RAM (temporary memory), hard drive or SSD (storage), input devices (keyboard, mouse), and output devices (monitor, printer).",
   "types_of_computers": "Common types include desktops, laptops, servers, mainframes, and embedded computers.",
@@ -255,7 +280,7 @@ export const Message=async(req,res)=>{
   "troubleshooting_tip": "If software is not working properly, restarting the computer or reinstalling the software often helps."
 }
 ,
-"developed_countries": {
+developed_countries: {
   "definition": "Developed countries, also called industrialized or high-income countries, have a high standard of living, advanced infrastructure, strong economy, and high Human Development Index (HDI).",
   "examples": "Some developed countries include the United States, Canada, United Kingdom, Germany, Japan, Australia, France, Switzerland, and Sweden.",
   "high_gdp": "Developed countries have a high Gross Domestic Product (GDP) per capita compared to developing countries.",
@@ -274,7 +299,7 @@ export const Message=async(req,res)=>{
 }
 ,
 
- "programming_language": {
+ programming_language: {
   "what_is_programming": "Programming is the process of writing instructions that computers can understand and execute.",
   
   "what_is_programming_language": "A programming language is a formal language used to communicate with computers and create software, websites, and applications.",
@@ -356,7 +381,7 @@ export const Message=async(req,res)=>{
   "why_programmers_use_git": "Git helps track code changes and collaborate with others."
 }
 ,
-"world_economy": {
+world_economy: {
   "what_is_world_economy": "The world economy refers to the global network of production, trade, money flow, and markets that connect all countries.",
   
   "biggest_economy": "The United States is currently the largest economy in the world by GDP.",
@@ -428,7 +453,7 @@ export const Message=async(req,res)=>{
   "future_of_world_economy": "AI, automation, green energy, and digital trade will shape the future world economy."
 }
 ,
-"bangladesh_economy": {
+bangladesh_economy: {
   "what_is_economy_of_bd": "Bangladesh has a fast-growing developing economy, driven by garments, remittances, agriculture, and services.",
   
   "gdp_of_bangladesh": "Bangladesh's GDP is over $450 billion, making it one of the largest economies in South Asia.",
@@ -490,7 +515,7 @@ export const Message=async(req,res)=>{
   "future_opportunities": "Opportunities include ICT, digital services, tourism, renewable energy, and smart manufacturing."
 }
 ,
-"computer_hardware": {
+computer_hardware: {
 
   "what_is_computer_hardware": "Computer hardware refers to the physical parts of a computer that you can touch, such as the CPU, RAM, motherboard, mouse, and keyboard.",
 
@@ -575,66 +600,68 @@ export const Message=async(req,res)=>{
   "why_computer_heats_up": "Computers heat up due to heavy workloads, dust, poor ventilation, or weak cooling systems."
 }
 ,
-  
-
- 
-
-  "basic_operations": {
+  basic_operations: {
     "what is 1+1": "1 + 1 = 2",
     "what is 2*3": "2 × 3 = 6",
     "what is 10/2": "10 ÷ 2 = 5",
     "what is 15-7": "15 - 7 = 8"
   },
-  "algebra": {
+  algebra: {
     "solve x+5=10": "x + 5 = 10 → x = 10 - 5 → x = 5",
     "solve 2x=14": "2x = 14 → x = 7",
     "solve x-3=4": "x - 3 = 4 → x = 7"
   },
-  "geometry": {
+  geometry: {
     "area of square with side 5": "Area = side² → 5² = 25",
     "perimeter of rectangle 5 and 10": "Perimeter = 2*(length + width) → 2*(5+10) = 30",
     "area of circle radius 7": "Area = π * r² → π*7² ≈ 153.94"
   },
-  "trigonometry": {
+  trigonometry: {
     "sin 30 degrees": "sin 30° = 1/2",
     "cos 60 degrees": "cos 60° = 1/2",
     "tan 45 degrees": "tan 45° = 1"
   },
-  "exponents_and_roots": {
+  exponents_and_roots: {
     "what is 2^3": "2³ = 8",
     "square root of 16": "√16 = 4",
     "cube root of 27": "³√27 = 3"
   },
-  "advanced_math": {
-    "derivative of x^2": "d/dx(x²) = 2x",
-    "integral of x dx": "∫x dx = x²/2 + C",
-    "factorize x^2+5x+6": "x² + 5x + 6 = (x+2)(x+3)"
-  },
-  "math_facts": {
-    "pi value": "π ≈ 3.14159",
-    "golden_ratio": "The golden ratio φ ≈ 1.618",
-    "fibonacci_sequence": "0, 1, 1, 2, 3, 5, 8, 13, 21, 34..."
-  }
 
+      advanced_math: {
+        "derivative of x^2": "d/dx(x²) = 2x",
+        "integral of x dx": "∫x dx = x²/2 + C",
+        "factorize x^2+5x+6": "x² + 5x + 6 = (x+2)(x+3)"
+      },
 
+      math_facts: {
+        "pi value": "π ≈ 3.14159",
+        "golden_ratio": "The golden ratio φ ≈ 1.618",
+        "fibonacci_sequence": "0, 1, 1, 2, 3, 5, 8, 13..."
+      }
+    };
 
+    // --------------------------------------------
 
-}
+    const normalizedText = text.toLowerCase().trim();
 
-const normalizedText = text.toLowerCase().trim();
+    // 🚀 Nested + Flexible matching
+    let botResponse = findResponse(botResponses, normalizedText);
 
-const botResponse = botResponses[normalizedText] || "Sorry, I don't understand that!!!";
+    // Default fallback
+    if (!botResponse) botResponse = "Sorry, I don't understand that!";
 
-const bot = await Bot.create({
-    text: botResponse
-})
+    // Save bot response
+    const bot = await Bot.create({
+      text: botResponse
+    });
 
-return res.status(200).json({
-    userMessage:user.text,
-    botMessage:bot.text,
-})
-   } catch (error) {
+    return res.status(200).json({
+      userMessage: user.text,
+      botMessage: bot.text,
+    });
+
+  } catch (error) {
     console.log("Error in Message Controller:", error);
-    return res.status(500).json({error:"Internal Server Error"});
-   }
-}
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
