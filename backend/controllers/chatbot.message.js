@@ -1,21 +1,37 @@
 import Bot from "../models/bot.model.js";
 import User from "../models/user.model.js";
 
+// ---- Simple Similarity Function (50%+ match হলে accept) ----
+function similarity(str1, str2) {
+  str1 = str1.toLowerCase();
+  str2 = str2.toLowerCase();
 
-// ----------- Helper Function (Recursive Search) -------------
-function findResponse(obj, text) {
+  let matchCount = 0;
+  const minLength = Math.min(str1.length, str2.length);
+
+  for (let i = 0; i < minLength; i++) {
+    if (str1[i] === str2[i]) {
+      matchCount++;
+    }
+  }
+
+  return matchCount / Math.max(str1.length, str2.length); // ratio
+}
+
+// ---- 50% match checking function ----
+function findFlexibleMatch(obj, userText) {
   for (const key in obj) {
+    const value = obj[key];
 
-    // যদি value আরেকটা object হয় → nested search
-    if (typeof obj[key] === "object") {
-      const result = findResponse(obj[key], text);
-      if (result) return result;
-    } 
-    
-    // যদি key user message-এ পাওয়া যায়
-    else {
-      if (text.includes(key.toLowerCase())) {
-        return obj[key];
+    if (typeof value === "object") {
+      const nested = findFlexibleMatch(value, userText);
+      if (nested) return nested;
+    } else {
+      const ratio = similarity(userText, key);
+
+      // 50% or more match → accept
+      if (ratio >= 0.5) {
+        return value;
       }
     }
   }
@@ -23,7 +39,7 @@ function findResponse(obj, text) {
 }
 
 
-// ---------------- Main Message Controller -------------------
+// ---------------- Main Controller -------------------
 export const Message = async (req, res) => {
   try {
     const { text } = req.body;
@@ -32,16 +48,11 @@ export const Message = async (req, res) => {
       return res.status(400).json({ error: "Text cannot be empty" });
     }
 
-    // Save user message
-    const user = await User.create({
-      sender: "user",
-      text,
-    });
+    await User.create({ sender: "user", text });
 
-    // ----------- All Bot Data --------------------
+    // Bot keywords + responses
     const botResponses = {
       
-
 greetings: {
     "hello": "Hi, how can I help you today?",
     "hi": "Hello! What can I do for you?",
@@ -638,30 +649,26 @@ computer_hardware: {
         "golden_ratio": "The golden ratio φ ≈ 1.618",
         "fibonacci_sequence": "0, 1, 1, 2, 3, 5, 8, 13..."
       }
-    };
-
-    // --------------------------------------------
-
+    }
     const normalizedText = text.toLowerCase().trim();
 
-    // 🚀 Nested + Flexible matching
-    let botResponse = findResponse(botResponses, normalizedText);
+    // 🔥 50% keyword match checking
+    let botResponse = findFlexibleMatch(botResponses, normalizedText);
 
-    // Default fallback
-    if (!botResponse) botResponse = "Sorry, I don't understand that!";
+    // fallback
+    if (!botResponse) {
+      botResponse = "Sorry, I didn't understand that!";
+    }
 
-    // Save bot response
-    const bot = await Bot.create({
-      text: botResponse
-    });
+    await Bot.create({ text: botResponse });
 
     return res.status(200).json({
-      userMessage: user.text,
-      botMessage: bot.text,
+      userMessage: text,
+      botMessage: botResponse,
     });
 
   } catch (error) {
-    console.log("Error in Message Controller:", error);
+    console.log("Error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
